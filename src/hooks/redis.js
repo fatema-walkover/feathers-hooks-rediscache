@@ -53,10 +53,10 @@ export function after(options) { // eslint-disable-line no-unused-vars
       if (!hook.result.cache.cached) {
         const duration = hook.result.cache.duration || options.defaultDuration;
         const client = hook.app.get('redisClient');
-        const path = hook.params.cacheKey || parsePath(hook, options);
+        let path = hook.params.cacheKey || parsePath(hook, options);
         
         if (options.cacheUserWise === true && hook.params.user) {
-          path = hooks.params.user.id + path;
+          path = hook.params.user.id + '#' + path;
         }
 
         // adding a cache object
