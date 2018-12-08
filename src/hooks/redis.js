@@ -59,10 +59,6 @@ export function after(options) { // eslint-disable-line no-unused-vars
           path = hook.params.user.id + '#' + path;
         }
 
-        console.log('options --> ', options);
-        console.log('path --> ', path);
-        console.log('hook.params.user --> ', hook.params.user);
-
         // adding a cache object
         Object.assign(hook.result.cache, {
           cached: true,
