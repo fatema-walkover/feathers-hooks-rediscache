@@ -16,14 +16,14 @@ export function before(options) { // eslint-disable-line no-unused-vars
 
     return new Promise(resolve => {
       const client = hook.app.get('redisClient');
-      let path = parsePath(hook, options);
+      let cacheKey = parsePath(hook, options);
 
       if (options.cacheUserWise === true && hook.params.user) {
         hook.params.cacheUserWise = options.cacheUserWise;
-        path = hook.params.user.id + '#' + path;
+        cacheKey = hook.params.user.id + '#' + cacheKey;
       }
 
-      client.get(path, (err, reply) => {
+      client.get(cacheKey, (err, reply) => {
         if (err !== null) resolve(hook);
         if (reply) {
           let data = JSON.parse(reply);
@@ -34,13 +34,14 @@ export function before(options) { // eslint-disable-line no-unused-vars
 
           /* istanbul ignore next */
           if (options.env !== 'test') {
-            console.log(`${chalk.cyan('[redis]')} returning cached value for ${chalk.green(path)}.`);
+            console.log(`${chalk.cyan('[redis]')} returning cached value for ${chalk.green(cacheKey)}.`);
             console.log(`> Expires on ${duration}.`);
           }
         } else {
           if (options.immediateCacheKey === true) {
-            hook.params.cacheKey = path;
+            hook.params.cacheKey = cacheKey;
           }
+
           resolve(hook);
         }
       });
@@ -58,10 +59,14 @@ export function after(options) { // eslint-disable-line no-unused-vars
       if (!hook.result.cache.cached) {
         const duration = hook.result.cache.duration || options.defaultDuration;
         const client = hook.app.get('redisClient');
-        let path = hook.params.cacheKey || parsePath(hook, options);
+        let cacheKey = hook.params.cacheKey || '';
 
-        if (hook.params.cacheUserWise === true && hook.params.user) {
-          path = hook.params.user.id + '#' + path;
+        if (!cacheKey.length) {
+          if (hook.params.cacheUserWise === true && hook.params.user) {
+            cacheKey = hook.params.user.id + '#';
+          }
+
+          cacheKey += parsePath(hook, options);
         }
 
         // adding a cache object
@@ -71,18 +76,18 @@ export function after(options) { // eslint-disable-line no-unused-vars
           expiresOn: moment().add(moment.duration(duration, 'seconds')),
           parent: hook.path,
           group: hook.path ? `group-${hook.path}` : '',
-          key: path
+          key: cacheKey
         });
 
-        client.set(path, JSON.stringify(hook.result));
-        client.expire(path, hook.result.cache.duration);
+        client.set(cacheKey, JSON.stringify(hook.result));
+        client.expire(cacheKey, hook.result.cache.duration);
         if (hook.path) {
-          client.rpush(hook.result.cache.group, path);
+          client.rpush(hook.result.cache.group, cacheKey);
         }
 
         /* istanbul ignore next */
         if (options.env !== 'test') {
-          console.log(`${chalk.cyan('[redis]')} added ${chalk.green(path)} to the cache.`);
+          console.log(`${chalk.cyan('[redis]')} added ${chalk.green(cacheKey)} to the cache.`);
           console.log(`> Expires in ${moment.duration(duration, 'seconds').humanize()}.`);
         }
       }
