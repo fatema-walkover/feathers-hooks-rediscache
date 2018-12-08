@@ -16,7 +16,12 @@ export function before(options) { // eslint-disable-line no-unused-vars
 
     return new Promise(resolve => {
       const client = hook.app.get('redisClient');
-      const path = parsePath(hook, options);
+      let path = parsePath(hook, options);
+
+      if (options.cacheUserWise === true && hook.params.user) {
+        hook.params.cacheUserWise = options.cacheUserWise;
+        path = hook.params.user.id + '#' + path;
+      }
 
       client.get(path, (err, reply) => {
         if (err !== null) resolve(hook);
@@ -55,7 +60,7 @@ export function after(options) { // eslint-disable-line no-unused-vars
         const client = hook.app.get('redisClient');
         let path = hook.params.cacheKey || parsePath(hook, options);
 
-        if (options.cacheUserWise === true && hook.params.user) {
+        if (hook.params.cacheUserWise === true && hook.params.user) {
           path = hook.params.user.id + '#' + path;
         }
 
