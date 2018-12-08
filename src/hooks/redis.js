@@ -54,7 +54,7 @@ export function after(options) { // eslint-disable-line no-unused-vars
         const duration = hook.result.cache.duration || options.defaultDuration;
         const client = hook.app.get('redisClient');
         let path = hook.params.cacheKey || parsePath(hook, options);
-        
+
         if (options.cacheUserWise === true && hook.params.user) {
           path = hook.params.user.id + '#' + path;
         }
